@@ -1,0 +1,7 @@
+interface:
+  display_name: "PPT Master"
+  short_description: "Codex 四路由生成、模板工作区创建与填充、原生增强 PPTX"
+  default_prompt: "使用 $ppt-master 把我的材料制作成结构清晰、可编辑且已通过质量检查的 PPTX。"
+
+policy:
+  allow_implicit_invocation: false
