@@ -8,7 +8,11 @@
 2. bundled PPT Master 6.6 native engine。
 3. bundled JSON builder（仅 Generate / 模板评审 deck）。
 
-不要让两个运行时同时写同一个输出文件。\n\n## Python 运行器\n\n所有 bundled Python 脚本必须通过 `sh "$SKILL_ROOT/scripts/run-python.sh" ...` 调用。运行器按顺序选择：`PPT_MASTER_PYTHON` → 仓库 `.venv/bin/python` → Skill `.venv/bin/python` → 当前 `VIRTUAL_ENV` → PATH 中的 `python3`，并强制要求 Python 3.10+。
+不要让两个运行时同时写同一个输出文件。
+
+## Python 运行器
+
+所有 bundled Python 脚本必须通过 `sh "$SKILL_ROOT/scripts/run-python.sh" ...` 调用。运行器按顺序选择：`PPT_MASTER_PYTHON` → 仓库 `.venv/bin/python` → Skill `.venv/bin/python` → 当前 `VIRTUAL_ENV` → PATH 中的 `python3`，并强制要求 Python 3.10+。
 
 ## Generate
 
