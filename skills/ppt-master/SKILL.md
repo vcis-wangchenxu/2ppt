@@ -1,53 +1,62 @@
 ---
 name: ppt-master
-description: "仅在用户明确调用 `$ppt-master` 时使用。把材料或现有演示文稿制作成可交付的 PPTX 或可复用模板工作区，支持生成演示文稿、创建 Brand/Style/Layout/Deck 模板工作区、向原生 PPTX 模板填充内容，以及在保留视觉的前提下增强原生 deck；生成路线还支持逐页美化与从页面图像重建可编辑图层。不要因一般 PPT/PPTX 请求隐式调用。"
+description: "仅在用户明确调用 `$ppt-master` 时使用。Codex-native PPT 工作流：生成/重设计可编辑 PPTX、创建 Brand/Style/Layout/Deck 模板工作区，以及通过原生 round-trip 编辑已有 PPTX（含模板填充、选择性改页、页序调整、备注、链接、图表/表格/公式、动画与转场）。不要因一般 PPT/PPTX 请求隐式调用。"
 ---
 
-# PPT Master
+# PPT Master for Codex
 
-把内容、模板或页面图像转换成结构清晰、尽量可编辑且经过验证的 `.pptx` 或可复用模板工作区。保留输入原件；不要直接覆盖用户文件。
+这是 `hugohe3/ppt-master@v6.6.0` 的 Codex-native 适配版。控制层保持轻量，重大能力由同步进来的上游工作流与原生 PPTX 引擎提供。
 
-## 定位运行根目录
+## 0. 运行根目录
 
-把当前 `SKILL.md` 所在目录解析为绝对路径 `SKILL_ROOT`，不要根据当前工作目录猜测。Skill 自带的 `references/` 与 `scripts/` 均相对于 `SKILL_ROOT`；项目的 `assets/` 相对于项目根和 `deck.json`，不在 Skill 目录中查找。执行脚本时始终使用绝对脚本、输入和输出路径。
+把当前 `SKILL.md` 所在目录解析为绝对路径 `SKILL_ROOT`。不要依赖当前工作目录。
 
-首次运行先检查环境：
-
-```bash
-SKILL_ROOT="/absolute/path/to/ppt-master"
-python "$SKILL_ROOT/scripts/doctor.py" --json
-```
-
-## 按需读取参考
-
-- 开始任何任务前读取 [路由规则](references/routing.md) 与 [项目契约](references/project-contract.md)。
-- 选择工具或遇到能力缺口时读取 [Codex 运行时](references/codex-runtime.md)。
-- 使用 bundled JSON builder 时读取 [Deck Spec](references/deck-spec.md)。
-- 生成或修改文件前读取 [质量门禁](references/quality-gates.md)。
-- 处理许可证、再分发或署名时读取 [上游来源与重构边界](references/upstream.md)。
-
-## 执行工作流
-
-1. 检查输入文件、交付目标、受众、语言、比例、页数、品牌约束与时效要求；只对会实质改变结果且无法安全推断的缺口提问。
-2. 在 `generate`、`create-template`、`fill-template`、`enhance` 中选择一个主路由。选择 `generate` 时再从 `ordinary`、`beautify`、`image-to-pptx` 中选择一个互斥 profile，并选择 `default` 或 `quick` 执行模式；`image-to-pptx` 固定为 `quick`。混合任务拆成有顺序的阶段。
-3. 在 Skill 目录之外建立项目目录，记录项目契约、来源、假设、资产和输出路径。原始文件只读保存。
-4. 优先使用会话提供的 Codex `Presentations` Skill 完成创建、编辑、渲染和检查；同时遵守它的指令。PPT Master 负责路由、保真约束与验收，不与它争夺底层文件操作。
-5. 仅在需要定制位图视觉时使用 ImageGen；需要当前事实、出处或在线资产时使用浏览器；把独立研究、素材搜集或第二轮 QA 委托给子代理，但只允许一个执行者写最终 deck/spec。
-6. 缺少原生 Presentations 能力，或需要可重复的确定性构建时，先形成 JSON Deck Spec，再调用 bundled builder。builder 只处理 `generate`，以及 `create-template/exports` 中的可选评审 deck；不得用于 `fill-template` 或 `enhance`：
+首次使用先运行：
 
 ```bash
-python "$SKILL_ROOT/scripts/build_deck.py" "/absolute/project/deck.json" -o "/absolute/project/output/deck.pptx"
+python3 "$SKILL_ROOT/scripts/doctor.py" --json
 ```
 
-首次构建默认拒绝覆盖已有文件。只有确认目标是本项目先前生成的常规文件时，迭代重建才加 `--force`；符号链接输出始终禁止。
+项目、缓存、转换结果与最终 PPTX 必须写在 Skill 目录之外。
 
-7. 先运行 `validate_pptx.py` 安全预检，再运行 `inspect_pptx.py`、逐页视觉检查和路线专属保真检查；修复后重新完整验证。未通过质量门禁时不要宣称完成。
-8. 交付 `.pptx`、验证摘要和仍存在的限制；只在用户要求时附带中间产物。
+## 1. 固定加载顺序
 
-## 硬性约束
+1. 读取 [Codex 运行时映射](references/codex-runtime.md)。
+2. 读取 [三路由入口](workflows/routing.md)。
+3. 选择且只选择一个顶层路由：Generate PPTX、Create Template、Edit Native PPTX。
+4. 只读取所选路由及其明确触发的 supporting references/stages。
+5. 生成或修改文件前读取 [质量门禁](references/quality-gates.md) 与 [项目契约](references/project-contract.md)。
 
-- 不要把截图式整页图片冒充可编辑幻灯片；`generate/image-to-pptx` 应拆分文字、形状、线条和图片图层，并如实说明不可编辑部分。
-- 不要为“增强”路线擅自改版，也不要在模板填充时悄悄替换母版、主题或品牌字体。
-- 不要伪造来源、浏览结果、音频、转场或验证结论。缺少能力时明确降级，并优先给出仍可验证的结果。
-- 不要在 Skill 安装目录写项目数据或交付文件。
-- 不要删除来源与许可证信息；交付前运行署名校验。
+旧术语 `fill-template` 与 `enhance` 都是 `edit-native` 的兼容别名，不再是独立顶层路由。
+
+## 2. Codex 优先级
+
+1. Codex 原生能力优先：会话提供 Presentations、网页检索、ImageGen 或视觉检查能力时优先使用；PPT Master 负责路由、规划、保真和验收。
+2. PPT Master 6.6 原生引擎：需要确定性 SVG→DrawingML、原生公式/图表/表格/链接、模板结构或 PPTX round-trip 保真时，使用 bundled 6.6 scripts。
+3. 轻量 JSON builder 最后兜底：只用于 `generate` 与 Create Template 的可选评审 deck；绝不伪造原生编辑保真。
+
+当上游工作流提到 provider-specific `image_gen.py` / `image_search.py` 时，Codex 中默认先用原生 ImageGen/Web。只有原生能力不可用或用户明确要求本地 provider 时才调用 bundled provider。
+
+## 3. 三条顶层路线
+
+### Generate PPTX
+用于从主题、文档、数据、现有 deck 或页面图生成/重设计新 deck。继续支持 Ordinary、Beautify、Image-to-PPTX；Quick/Default 是执行模式，不是路由。
+
+### Create Template
+用于生成可复用 Brand / Style / Layout / Deck 工作区。不要把来源 PPTX 就地“升级”为模板。
+
+### Edit Native PPTX
+用于保留已有 PPTX 的 native design 并进行模板填充、选择性改页、删页/换序/重复、添加备注/链接/动画/转场等。优先使用 `pptx_to_svg.py --roundtrip` → 编辑 workspace → `svg_to_pptx.py --roundtrip`；未改页面应保持原生恢复。
+
+## 4. 关键设计纪律
+
+- Plan 只决定事实、叙事、页面 roster、关系、全局约束和已准备资产；Executor 决定 canvas 上的 composition、carrier、geometry、preset 与 treatment。
+- 使用 vocabulary-led semantic selection：先判断页面语义关系，再选择文字/图片/原生形状/图表/表格/公式，而不是按关键词硬套模板。
+- 每页可声明 `order/link/parent/membership/contrast/overlap` 等 Relationships；是否需要 topology 由 Executor 决定。
+- 文字区域先测量再排版；复杂数学优先原生 Office Math；数据图表/表格优先可编辑 native 对象并做 parity 检查。
+- Revision Round 只重跑受影响层，不因小改动整套重建。
+- 任何路线都不得以“文件生成成功”替代结构、内容、视觉和保真 QA。
+
+## 5. 交付
+
+最终至少交付：目标 PPTX/模板工作区、采用路由、验证结果、来源/许可提示与仍存在的限制。若核心保真门禁失败，明确阻断，不把部分成功描述为完整交付。

@@ -1,0 +1,47 @@
+name: Sync PPT Master 6.6 Core
+
+on:
+  push:
+    paths:
+      - ".ppt-master-sync-trigger"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch audited upstream
+        run: git clone --depth 1 --branch v6.6.0 https://github.com/hugohe3/ppt-master.git /tmp/ppt-master-upstream
+      - name: Vendor selected core
+        run: python tools/sync_ppt_master.py --upstream-root /tmp/ppt-master-upstream --repo-root "$GITHUB_WORKSPACE" --version v6.6.0
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r skills/ppt-master/requirements.txt
+          python -m pip check
+      - name: Compile and test
+        run: |
+          python -m compileall -q install.py tools skills/ppt-master/scripts tests
+          python -m unittest discover -s tests -v
+          python skills/ppt-master/scripts/doctor.py --json
+          python skills/ppt-master/scripts/verify_attribution.py
+      - name: Commit synchronized core
+        run: |
+          if git diff --quiet --exit-code && [ -z "$(git status --porcelain)" ]; then
+            echo "No sync changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add skills/ppt-master
+          git commit -m "feat: sync PPT Master v6.6.0 core for Codex"
+          git push origin HEAD:main

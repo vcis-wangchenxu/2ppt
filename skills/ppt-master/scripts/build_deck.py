@@ -62,7 +62,7 @@ DEFAULT_THEME = {
 }
 
 SLIDE_SIZES = {"wide": (13.333333, 7.5), "standard": (10.0, 7.5)}
-ROUTES = ("generate", "create-template", "fill-template", "enhance")
+ROUTES = ("generate", "create-template", "edit-native", "fill-template", "enhance")
 BUILDER_ROUTES = ("generate", "create-template")
 PROFILES = ("ordinary", "beautify", "image-to-pptx")
 
@@ -758,7 +758,7 @@ class DeckBuilder:
         if route not in BUILDER_ROUTES:
             raise UserInputError(
                 "bundled builder 仅支持 route=generate，或为 create-template 生成可选评审 deck；"
-                "fill-template/enhance 必须使用能保留原生 PPTX 的运行时"
+                "edit-native（以及历史 fill-template/enhance）必须使用能保留原生 PPTX 的运行时"
             )
         if "profile" in self.spec:
             if route != "generate":
