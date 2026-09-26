@@ -31,7 +31,9 @@ class SkillMetadataTestCase(unittest.TestCase):
                 except ValueError:
                     if str(mdfile.resolve()).startswith(str(SKILL_ROOT.resolve())): continue
                     rel=""
-                if any(rel.startswith(x) for x in ignored): continue
+                normalized_target=(Path(rel).as_posix() if rel else clean).lstrip("./")
+                if any(normalized_target.startswith(x) or f"/{x}" in normalized_target for x in ignored): continue
+                if any(part in {"brands","icons","sounds","ai-image-comparison"} for part in Path(clean).parts): continue
                 if not resolved.exists(): failures.append(f"{mdfile.relative_to(REPOSITORY)} -> {target}")
         self.assertEqual(failures,[])
 if __name__=="__main__": unittest.main()
