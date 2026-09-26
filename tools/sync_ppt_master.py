@@ -6,7 +6,7 @@ from pathlib import Path
 
 UPSTREAM_VERSION="v6.6.0"
 SKILL_REL=Path("skills/ppt-master")
-PROTECTED={"SKILL.md","agents/openai.yaml","references/codex-runtime.md","references/deck-spec.md","references/project-contract.md","references/quality-gates.md","references/routing.md","references/upstream.md","scripts/build_deck.py","scripts/doctor.py","scripts/init_project.py","scripts/inspect_pptx.py","scripts/runtime_common.py","scripts/smoke_test.py","scripts/validate_pptx.py","scripts/verify_attribution.py","LICENSE"}
+PROTECTED={"SKILL.md","agents/openai.yaml","references/codex-runtime.md","references/deck-spec.md","references/project-contract.md","references/quality-gates.md","references/routing.md","references/upstream.md","scripts/attribution_guard.py","scripts/build_deck.py","scripts/console_encoding.py","scripts/doctor.py","scripts/init_project.py","scripts/inspect_pptx.py","scripts/run-python.sh","scripts/runtime_common.py","scripts/smoke_test.py","scripts/validate_pptx.py","scripts/verify_attribution.py","LICENSE"}
 TEMPLATE_DIRS={"schemas","scaffolds","charts","tables","styles","layouts","decks"}
 TEMPLATE_ROOT_FILES={"README.md","VISUALIZATION_TEMPLATE_AUTHORING.md","design_spec_reference.md","spec_lock_reference.md"}
 
@@ -18,7 +18,7 @@ def selected(rel:Path)->bool:
     if p.startswith("references/"): return not p.startswith("references/ai-image-comparison/")
     if p.startswith("scripts/"):
         if p.startswith("scripts/tests/"): return False
-        return p not in {"scripts/attribution_guard.py","scripts/update_repo.py"}
+        return p != "scripts/update_repo.py"
     if p.startswith("templates/"):
         parts=rel.parts
         if len(parts)==2 and parts[1] in TEMPLATE_ROOT_FILES: return True

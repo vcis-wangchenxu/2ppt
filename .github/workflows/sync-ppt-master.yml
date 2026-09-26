@@ -33,7 +33,7 @@ jobs:
           python -m compileall -q install.py tools skills/ppt-master/scripts tests
           python -m unittest discover -s tests -v
           python skills/ppt-master/scripts/doctor.py --json
-          python skills/ppt-master/scripts/verify_attribution.py
+          python skills/ppt-master/scripts/verify_attribution.py\n          sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/attribution_guard.py\n          sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/pptx_to_svg.py --help\n          sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/svg_to_pptx.py --help
       - name: Commit synchronized core
         run: |
           if git diff --quiet --exit-code && [ -z "$(git status --porcelain)" ]; then

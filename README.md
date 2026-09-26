@@ -39,7 +39,7 @@ python3 skills/ppt-master/scripts/verify_attribution.py
 ls -la ~/.agents/skills/ppt-master
 ```
 
-重启 Codex 后运行 `/skills`，再显式调用 `$ppt-master`。
+安装依赖时需要激活 `.venv`；Codex 实际运行时不需要激活 Terminal 环境，Skill 会通过 `run-python.sh` 自动优先使用仓库 `.venv/bin/python`。\n\n重启 Codex 后运行 `/skills`，再显式调用 `$ppt-master`。
 
 ## 路由
 

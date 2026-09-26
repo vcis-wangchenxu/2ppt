@@ -10,8 +10,8 @@
 - 原生 round-trip 不产生孤儿关系、丢失 Master/Layout 或错误代理对象。
 
 ```bash
-python3 "$SKILL_ROOT/scripts/validate_pptx.py" /absolute/result.pptx --json
-python3 "$SKILL_ROOT/scripts/inspect_pptx.py" /absolute/result.pptx --json
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/validate_pptx.py" /absolute/result.pptx --json
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/inspect_pptx.py" /absolute/result.pptx --json
 ```
 
 6.6 SVG/native pipeline 同时执行其 `svg_quality_checker.py`、delivery/native parity 检查。
@@ -34,5 +34,5 @@ python3 "$SKILL_ROOT/scripts/inspect_pptx.py" /absolute/result.pptx --json
 ## 6. 署名
 
 ```bash
-python3 "$SKILL_ROOT/scripts/verify_attribution.py"
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/verify_attribution.py"
 ```

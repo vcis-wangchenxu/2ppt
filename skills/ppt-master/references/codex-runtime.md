@@ -8,23 +8,23 @@
 2. bundled PPT Master 6.6 native engine。
 3. bundled JSON builder（仅 Generate / 模板评审 deck）。
 
-不要让两个运行时同时写同一个输出文件。
+不要让两个运行时同时写同一个输出文件。\n\n## Python 运行器\n\n所有 bundled Python 脚本必须通过 `sh "$SKILL_ROOT/scripts/run-python.sh" ...` 调用。运行器按顺序选择：`PPT_MASTER_PYTHON` → 仓库 `.venv/bin/python` → Skill `.venv/bin/python` → 当前 `VIRTUAL_ENV` → PATH 中的 `python3`，并强制要求 Python 3.10+。
 
 ## Generate
 
 默认先使用 Codex Presentations 完成创建、编辑、渲染和视觉检查。需要确定性 DrawingML、原生数据对象、公式或上游 SVG contract 时使用 6.6 pipeline。
 
 ```bash
-python3 "$SKILL_ROOT/scripts/source_to_md.py" <source> -o <output>
-python3 "$SKILL_ROOT/scripts/text_measure.py" --help
-python3 "$SKILL_ROOT/scripts/svg_quality_checker.py" --help
-python3 "$SKILL_ROOT/scripts/svg_to_pptx.py" --help
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/source_to_md.py" <source> -o <output>
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/text_measure.py" --help
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/svg_quality_checker.py" --help
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/svg_to_pptx.py" --help
 ```
 
 JSON builder 仍保留为最后兜底：
 
 ```bash
-python3 "$SKILL_ROOT/scripts/build_deck.py" /absolute/project/deck.json -o /absolute/project/output/deck.pptx
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/build_deck.py" /absolute/project/deck.json -o /absolute/project/output/deck.pptx
 ```
 
 它不承担 Edit Native PPTX。
@@ -34,14 +34,14 @@ python3 "$SKILL_ROOT/scripts/build_deck.py" /absolute/project/deck.json -o /abso
 这是原 `fill-template` 与 `enhance` 的统一替代路线。
 
 ```bash
-python3 "$SKILL_ROOT/scripts/pptx_to_svg.py" /absolute/source.pptx -o /absolute/workspace --inheritance-mode both --roundtrip
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/pptx_to_svg.py" /absolute/source.pptx -o /absolute/workspace --inheritance-mode both --roundtrip
 ```
 
 先读 `authoring-svg-flat/authoring_summary.json`，只打开需要判断或修改的 SVG。未修改页面与未修改 native objects 依赖 round-trip backing 恢复。
 
 ```bash
-python3 "$SKILL_ROOT/scripts/svg_quality_checker.py" /absolute/workspace/authoring-svg-flat --roundtrip --json
-python3 "$SKILL_ROOT/scripts/svg_to_pptx.py" /absolute/workspace/authoring-svg-flat -o /absolute/workspace/exports/result.pptx --roundtrip
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/svg_quality_checker.py" /absolute/workspace/authoring-svg-flat --roundtrip --json
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/svg_to_pptx.py" /absolute/workspace/authoring-svg-flat -o /absolute/workspace/exports/result.pptx --roundtrip
 ```
 
 需要页序/删页/重复时按 `workflows/edit-native-pptx.md` 写 `page_plan.json`。不要用 JSON builder 模拟 native round-trip。
@@ -61,8 +61,8 @@ bundled 6.6 engine 提供或保留 native shapes/Boolean geometry/gradients/effe
 ## 验证
 
 ```bash
-python3 "$SKILL_ROOT/scripts/doctor.py" --json
-python3 "$SKILL_ROOT/scripts/verify_attribution.py"
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/doctor.py" --json
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/verify_attribution.py"
 ```
 
 最终仍需结构检查 + 渲染视觉检查 + 路线保真检查。
