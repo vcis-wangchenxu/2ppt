@@ -10,13 +10,13 @@ Context-independent: persisted project artifacts replace the planning session's 
 
 ## When to Run
 
-The user opens a new chat naming a project path with continuation intent — "继续生成 projects/<name>", "resume execution projects/<name>", or a project path plus any 继续 / 恢复 / 接着做 semantic. **Prerequisite**: planning completed in that project, verified by file presence in Step 1; never auto-trigger planning on missing state.
+The user opens a new chat naming a project path with continuation intent — "继续生成 projects/<name>", "resume execution projects/<name>", or a project path plus any other request, in any language, to continue or resume. **Prerequisite**: planning completed in that project, verified by file presence in Step 1; never auto-trigger planning on missing state.
 
 ---
 
 ## Step 1: Sanity check
 
-`<project_path>/design_spec.md` (approved narrative and §IX outline) and `<project_path>/spec_lock.md` (execution anchors and routing contract) must both exist; their complete reads happen after the Executor role core loads. If either is missing, stop and recover through [`failure-recovery.md`](../governance/failure-recovery.md) §3 — never enter Step 6, treat an orphan lock as authority, or invent a replacement.
+`<project_path>/design_spec.md` (approved narrative and §IX outline) and `<project_path>/spec_lock.md` (execution anchors and routing contract) must both exist; their complete reads happen after the Executor role core loads. When `<project_path>/spec_review/` exists, run `python3 ${SKILL_DIR}/scripts/check_spec_annotations.py <project_path>`; a pending comment or an unacknowledged direct edit means the Design Spec moved after the lock was authored — return to [`refine-spec`](refine-spec.md) Step 2 before any execution. If either file is missing, stop and recover through [`failure-recovery.md`](../governance/failure-recovery.md) §3 — never enter Step 6, treat an orphan lock as authority, or invent a replacement.
 
 ---
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import os
 import sys
 import tempfile
 import unittest
@@ -28,6 +29,8 @@ class InstallerTestCase(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            env={**os.environ, "PYTHONUTF8": "1"},
         )
 
     def test_copy_replace_and_recoverable_uninstall(self) -> None:
@@ -42,14 +45,16 @@ class InstallerTestCase(unittest.TestCase):
 
         replaced = self.run_installer("--target", str(target), "--force")
         self.assertEqual(replaced.returncode, 0, replaced.stderr)
-        backups = sorted(target.parent.glob("ppt-master.backup-*"))
+        backup_root = target.parent.parent / "skill-backups"
+        backups = sorted(backup_root.glob("ppt-master.backup-*"))
         self.assertEqual(len(backups), 1)
         self.assertTrue((backups[0] / "SKILL.md").is_file())
+        self.assertEqual(list(target.parent.glob("ppt-master.backup-*")), [])
 
         removed = self.run_installer("--target", str(target), "--uninstall")
         self.assertEqual(removed.returncode, 0, removed.stderr)
         self.assertFalse(target.exists())
-        self.assertEqual(len(list(target.parent.glob("ppt-master.backup-*"))), 2)
+        self.assertEqual(len(list(backup_root.glob("ppt-master.backup-*"))), 2)
 
     def test_rejects_destinations_that_overlap_source(self) -> None:
         source = installer.SOURCE_DIR.resolve()

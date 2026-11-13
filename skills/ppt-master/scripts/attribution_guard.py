@@ -13,7 +13,7 @@ _ERROR_MESSAGE = (
 _SKILL_DIR = Path(__file__).resolve().parent.parent
 _UPSTREAM_URL = "https://github.com/hugohe3/ppt-master"
 _ADAPTATION_URL = "https://github.com/vcis-wangchenxu/2ppt"
-_BASELINE_COMMIT = "a50758ac29ec027e85966db33e2ae80031446756"
+_BASELINE_COMMIT = "ce92fb43e4ade9c701f4c869e286f13fce743c72"
 _REQUIRED_FILES = (
     "SKILL.md",
     "LICENSE",

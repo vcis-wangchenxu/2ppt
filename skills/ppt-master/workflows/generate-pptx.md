@@ -125,7 +125,7 @@ This is a capability map, not a usage checklist; direction construction follows 
 
 **User images**: if the user provided images, run `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` before the Design Spec and read `analysis/image_analysis.csv` before §VIII. The CSV is a regenerated view of `images/`: rerun after any change, never treat it as a store. Never bulk-open images: Strategist inspects one specifically ambiguous asset under [`strategist-image.md`](../references/strategist-image.md) and records the result in §VIII; Executor inspects one `Existing` / `Sourced` asset only for crop, focal placement, or text contrast.
 
-⛔ **BLOCKING — two-stage confirmation**: the always-on user gate unless explicitly delegated. Stage 1 confirms the communication contract and exactly one template mode (`free_design` or `templates`, the latter expanding the four registered-kind selectors plus supplied roots and requiring at least one selection). Final Stage 2 confirms the complete deck solution plus production mechanics only after the Stage-1 choice is installed or free design is closed; `refine_spec: true` adds one chat gate after Design Spec Gate 1. Author each stage once; submitted values — including blanks and unusual overrides — are authoritative.
+⛔ **BLOCKING — two-stage confirmation**: the always-on user gate unless explicitly delegated. Stage 1 confirms the communication contract and exactly one template mode (`free_design` or `templates`, the latter expanding the four registered-kind selectors plus supplied roots and requiring at least one selection). Final Stage 2 confirms the complete deck solution plus production mechanics only after the Stage-1 choice is installed or free design is closed; `refine_spec: true` adds one approval gate after Design Spec Gate 1. Author each stage once; submitted values — including blanks and unusual overrides — are authoritative.
 
 **Only the user confirms**: the agent authors recommendations, operates the server, reads state, and applies a template. It never confirms on the user's behalf, automates submission, synthesizes a payload, or writes user result state; silence confirms nothing. Under explicit delegation the agent makes the Stage-1 decision, installs it, derives Stage 2, and presents one complete summary without fabricating UI receipts.
 
@@ -157,7 +157,7 @@ If the user selects chat after launch, apply `confirm-surface.md`'s in-run switc
 
 1. Read `${SKILL_DIR}/templates/design_spec_reference.md`; create the complete I–X `design_spec.md` once at the confirmed `design_spec_depth`, without placeholders or `scaffold-*`.
 2. Audit it field by field against the retained confirmation — Gate 1.
-3. With `refine_spec: true`, run [`refine-spec`](stages/refine-spec.md): review that file in chat, accept arbitrary revisions, touch no lock, stop until explicit approval. Otherwise skip.
+3. With `refine_spec: true`, run [`refine-spec`](stages/refine-spec.md): review that file on the surface the run is using (its review page on the page branch, otherwise chat), accept arbitrary revisions, touch no lock, stop until explicit approval in chat. Otherwise skip.
 4. Read `${SKILL_DIR}/templates/spec_lock_reference.md`; author `spec_lock.md` once from the approved Design Spec and context — identity and refinements, every recurring typography role, routing anchors, each placed image's source/layout suggestion/crop policy; no page-local garnish, no image palette; `strategist-template.md` §3 when active.
 5. Compare lock anchors to the Design Spec and run `python3 ${SKILL_DIR}/scripts/project_manager.py validate <project_path>`. Schema validity never proves fidelity: a final-state → Design Spec mismatch, an approved Design Spec → lock mismatch, or an unapplied revision blocks. Repair from the retained confirmation (or the approved revision); resume and refine edit existing files, never scaffolds; only fresh recovery may reread persisted final evidence once. Unhonorable requirements follow [`failure-recovery.md`](governance/failure-recovery.md).
 
@@ -165,7 +165,7 @@ If the user selects chat after launch, apply `confirm-surface.md`'s in-run switc
 
 | Note | When | Content |
 |---|---|---|
-| Split-mode note | Only when the confirmed mode is `split` or the run is heavy (long page count, bulky sources, substantial research retained in this chat — an isolated `topic-research` worker's fetches do not count) | Recommend or confirm stopping after Step 5 and entering the execution session with `继续生成 projects/<project_name>` ([`resume-execute`](stages/resume-execute.md)); no response or "continue" means `continuous`, and the default path prints no reminder |
+| Split-mode note | Only when the confirmed mode is `split` or the run is heavy (long page count, bulky sources, substantial research retained in this chat — an isolated `topic-research` worker's fetches do not count) | Recommend or confirm stopping after Step 5 and entering the execution session with a resume request naming the project, in the user's language (e.g. `继续生成 projects/<project_name>`; [`resume-execute`](stages/resume-execute.md)); no response or "continue" means `continuous`, and the default path prints no reminder |
 | Spec-refinement note | Always | Offer review of the complete Design Spec before the lock (default OFF; only explicit opt-in or `refine_spec: true` runs `refine-spec`) |
 
 **Production fields**: resolve Speaker Notes, Custom Animations, and Narration Audio as latest explicit user instruction → final Stage-2 proactive value → default `true` / `false` / `false`. Enabled Narration Audio raises a non-explicitly-disabled Speaker Notes outcome and names that dependency. Persist the effective outcomes with provenance as the three rows in `design_spec.md §I`, keep the raw proactive fields as evidence only, and project neither into `spec_lock.md`. A later explicit request updates only its §I outcome and resumes the owning step without reopening Confirm UI. Disabling notes while audio stays enabled asks one question (disable audio too, or keep its required notes) before writing either row.
@@ -206,13 +206,13 @@ Load only the references the rows need; a mixed deck writes both `image_prompts.
 
 **Workflow**: run the procedure in [`image-base.md`](../references/image-base.md) §2 — separate derivative rows, group canonical rows by `Acquire Via`, finish each path, slice each generated sheet with its grid, `--names`, and the exact key HEX from its prompt, materialize derivatives only from terminal sources under their declared treatment. Then verify every row is terminal (no `Pending`, `Failed`, or `Needs-Selection`; an unresolved Default AI row waits at the gate above) and run `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` so the CSV reflects every placeable image. Every Pending/Failed row reaches a terminal state before Executor starts.
 
-**✅ Internal checkpoint** — sidecars, slice outputs, terminal statuses, refreshed CSV. Do not print. Auto-proceed to Step 6; only `generation_mode: split` prints the handoff and stops this conversation:
+**✅ Internal checkpoint** — sidecars, slice outputs, terminal statuses, refreshed CSV. Do not print. Auto-proceed to Step 6; only `generation_mode: split` prints the handoff and stops this conversation (English template; translate to the user's chat language if different, including the resume request):
 
 ```markdown
 ## ✅ Planning Session Complete
 - [x] Spec: `design_spec.md`, `spec_lock.md`
 - [x] Resources: `sources/`, `images/`, `templates/`
-- [ ] **Next**: open a fresh chat window and input `继续生成 projects/<project_name>` to enter the execution session via the [`resume-execute`](stages/resume-execute.md) stage.
+- [ ] **Next**: open a fresh chat window and send a resume request naming the project (e.g. `继续生成 projects/<project_name>`) to enter the execution session via the [`resume-execute`](stages/resume-execute.md) stage.
 ```
 
 ---

@@ -10,11 +10,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,5 +34,17 @@ jobs:
       - run: python skills/ppt-master/scripts/verify_attribution.py
       - run: python skills/ppt-master/scripts/smoke_test.py
       - run: sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/attribution_guard.py
+        if: runner.os != 'Windows'
       - run: sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/pptx_to_svg.py --help
+        if: runner.os != 'Windows'
       - run: sh skills/ppt-master/scripts/run-python.sh skills/ppt-master/scripts/svg_to_pptx.py --help
+        if: runner.os != 'Windows'
+      - name: Windows runner
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & ./skills/ppt-master/scripts/run-python.ps1 ./skills/ppt-master/scripts/doctor.py --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./skills/ppt-master/scripts/run-python.ps1 ./skills/ppt-master/scripts/pptx_to_svg.py --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./skills/ppt-master/scripts/run-python.ps1 ./skills/ppt-master/scripts/svg_to_pptx.py --help

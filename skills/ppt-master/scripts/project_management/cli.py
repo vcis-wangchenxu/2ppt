@@ -90,6 +90,8 @@ from _dispatcher import (  # noqa: E402
     PRESENTATION_SUFFIXES,
     build_conversion_command,
 )
+from _markdown_links import rewrite_local_asset_links  # noqa: E402
+from _text_encoding import decode_text_source  # noqa: E402
 
 SOURCE_DIRNAME = "sources"
 TEXT_SOURCE_SUFFIXES = {".md", ".markdown", ".txt"}
@@ -258,13 +260,26 @@ def _has_usable_import(summary: dict[str, list[str]]) -> bool:
     )
 
 
+def default_projects_root() -> Path:
+    """Return where `init` creates projects when `--dir` is omitted.
+
+    Inside the repository checkout this is the repository's `projects/`, so a
+    command run from within `projects/` never nests `projects/projects/`. A
+    skill-only installation (npx skills, plugin cache) has no repository, so
+    projects go under the caller's working folder instead of the install tree.
+    """
+    if is_within_path(Path.cwd(), REPO_ROOT):
+        return PROJECTS_ROOT
+    return Path.cwd() / "projects"
+
+
 class ProjectManager:
     """Create, inspect, validate, and populate project folders."""
 
     CANVAS_FORMATS = CANVAS_FORMATS
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        self.base_dir = Path(base_dir) if base_dir is not None else PROJECTS_ROOT
+        self.base_dir = Path(base_dir) if base_dir is not None else default_projects_root()
 
     def scaffold_artifact(self, project_path: str, artifact: str) -> str:
         """Delegate deterministic Markdown scaffold rendering."""
@@ -541,7 +556,13 @@ class ProjectManager:
 
     def _normalize_text_source(self, source_path: Path, sources_dir: Path) -> Path:
         target = self._ensure_unique_path(sources_dir / f"{source_path.stem}.md")
-        content = source_path.read_text(encoding="utf-8", errors="replace")
+        content, encoding = decode_text_source(source_path.read_bytes(), source_path)
+        if encoding != "utf-8":
+            print(
+                f"note: {source_path.name} decoded as {encoding}; "
+                "check the converted text",
+                file=sys.stderr,
+            )
         target.write_text(content, encoding="utf-8")
         return target
 
@@ -566,10 +587,31 @@ class ProjectManager:
                 pass
 
             existing_content = existing.read_text(encoding="utf-8", errors="replace")
-            if self._canonicalize_markdown_content(existing_content) == canonical_source:
+            if (
+                self._canonicalize_markdown_content(existing_content) == canonical_source
+                and self._companion_assets_match(source_path, existing)
+            ):
                 return existing
 
         return None
+
+    def _companion_assets_match(self, first: Path, second: Path) -> bool:
+        """Same-text Markdown is a duplicate only if its <stem>_files/ bytes match too.
+
+        Canonical text ignores the asset folder name, so two exports with
+        different charts behind the same references used to collapse into one.
+        """
+        def snapshot(markdown: Path) -> dict[str, bytes] | None:
+            assets = self._companion_asset_dir(markdown)
+            if assets is None:
+                return None
+            return {
+                path.relative_to(assets).as_posix(): path.read_bytes()
+                for path in assets.rglob("*")
+                if path.is_file()
+            }
+
+        return snapshot(first) == snapshot(second)
 
     def _companion_asset_dir(self, source_path: Path) -> Path | None:
         candidate = source_path.with_name(f"{source_path.stem}_files")
@@ -587,7 +629,7 @@ class ProjectManager:
             return
 
         content = markdown_path.read_text(encoding="utf-8", errors="replace")
-        updated = content.replace(f"{original_asset_dirname}/", f"{imported_asset_dirname}/")
+        updated = rewrite_local_asset_links(content, original_asset_dirname, imported_asset_dirname)
         if updated != content:
             markdown_path.write_text(updated, encoding="utf-8")
 
@@ -820,6 +862,8 @@ class ProjectManager:
             raise ValueError("At least one source path or URL is required")
 
         sources_dir = self._source_dir(project_dir)
+        existing_markdown = {path.resolve() for path in sources_dir.glob("*.md")}
+        reserved_markdown: set[Path] = set()
         summary: dict[str, list[str]] = {
             "archived": [],
             "url_records": [],
@@ -998,12 +1042,48 @@ class ProjectManager:
                     summary["notes"].append(note)
                 continue
 
+            archive_target = sources_dir / source_path.name
+            if source_path.resolve() != archive_target.resolve():
+                archive_target = self._ensure_unique_path(archive_target)
+            canonical_markdown_path = archive_target.with_suffix(".md")
+            has_explicit_markdown = archive_target.stem in explicit_markdown_stems
+            if suffix in PDF_SUFFIXES | PRESENTATION_SUFFIXES | EXCEL_SUFFIXES | DOC_SUFFIXES:
+                markdown_target = canonical_markdown_path
+                keep_markdown = (
+                    has_explicit_markdown or markdown_target.resolve() in existing_markdown
+                )
+                if not keep_markdown or markdown_target.resolve() in reserved_markdown:
+                    # Reserve the source stem before conversion, including failed
+                    # conversions that may already have written intake or assets.
+                    stem = archive_target.stem
+                    counter = 2
+                    while (
+                        markdown_target.resolve() in reserved_markdown
+                        or markdown_target.exists()
+                        or archive_target.stem in explicit_markdown_stems
+                        or (archive_target.exists() and archive_target.resolve() != source_path.resolve())
+                        or markdown_target.with_suffix(".conversion_profile.json").exists()
+                        or (sources_dir / f"{archive_target.stem}_files").exists()
+                        or (project_dir / "analysis" / f"{archive_target.stem}.identity.json").exists()
+                        or (project_dir / "analysis" / f"{archive_target.stem}.slide_library.json").exists()
+                    ):
+                        archive_target = archive_target.with_name(f"{stem}_{counter}{source_path.suffix}")
+                        markdown_target = archive_target.with_suffix(".md")
+                        counter += 1
+                # PPTX intake still writes analysis when Markdown is reused.
+                reserved_markdown.add(markdown_target.resolve())
+                if not keep_markdown:
+                    canonical_markdown_path = markdown_target
             archived_path = self._copy_or_move_file(
                 source_path,
-                sources_dir / source_path.name,
+                archive_target,
                 move=effective_move,
             )
             summary["archived"].append(str(archived_path))
+            if archived_path.name != source_path.name:
+                summary["notes"].append(
+                    f"{item}: archived as {archived_path.name} to avoid a filename or source-stem collision"
+                )
 
             if suffix in BITMAP_IMAGE_SUFFIXES:
                 images_dir = project_dir / "images"
@@ -1017,8 +1097,7 @@ class ProjectManager:
                         "to avoid a filename collision"
                     )
             elif suffix in PDF_SUFFIXES:
-                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
-                if archived_path.stem in explicit_markdown_stems:
+                if has_explicit_markdown:
                     summary["notes"].append(
                         f"{item}: skipped PDF auto-conversion because a same-stem Markdown source was provided"
                     )
@@ -1040,7 +1119,6 @@ class ProjectManager:
                 except Exception as exc:  # pragma: no cover - summary path
                     summary["skipped"].append(f"{item}: PDF conversion failed ({exc})")
             elif suffix in PRESENTATION_SUFFIXES:
-                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
                 try:
                     intake_dir = self._import_pptx_intake(archived_path, project_dir)
                     intake_str = str(intake_dir)
@@ -1048,7 +1126,7 @@ class ProjectManager:
                         summary["analysis"].append(intake_str)
                 except Exception as exc:  # pragma: no cover - summary path
                     summary["notes"].append(f"{item}: PPTX intake analysis failed ({exc})")
-                if archived_path.stem in explicit_markdown_stems:
+                if has_explicit_markdown:
                     summary["notes"].append(
                         f"{item}: skipped presentation auto-conversion because a same-stem Markdown source was provided"
                     )
@@ -1070,8 +1148,7 @@ class ProjectManager:
                 except Exception as exc:  # pragma: no cover - summary path
                     summary["skipped"].append(f"{item}: presentation conversion failed ({exc})")
             elif suffix in EXCEL_SUFFIXES:
-                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
-                if archived_path.stem in explicit_markdown_stems:
+                if has_explicit_markdown:
                     summary["notes"].append(
                         f"{item}: skipped Excel auto-conversion because a same-stem Markdown source was provided"
                     )
@@ -1102,8 +1179,7 @@ class ProjectManager:
                     f"{item}: archived as a plain-text table source; no Markdown conversion needed"
                 )
             elif suffix in DOC_SUFFIXES:
-                canonical_markdown_path = sources_dir / f"{archived_path.stem}.md"
-                if archived_path.stem in explicit_markdown_stems:
+                if has_explicit_markdown:
                     summary["notes"].append(
                         f"{item}: skipped document auto-conversion because a same-stem Markdown source was provided"
                     )

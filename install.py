@@ -5,7 +5,7 @@ The default is a user-level copy at ``~/.agents/skills/ppt-master``. Use
 ``--project PATH`` for a repository-local installation, or ``--symlink`` while
 developing. Existing destinations are never overwritten unless ``--force`` is
 provided; forced replacement first moves the old destination to a timestamped
-backup next to it.
+backup outside the skill discovery directory.
 """
 
 from __future__ import annotations
@@ -44,14 +44,16 @@ def remove_path(path: Path) -> None:
 
 
 def backup_path_for(destination: Path) -> Path:
-    """Choose a non-existing timestamped backup path beside destination."""
+    """Keep backups outside the directory Codex scans for active skills."""
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
-    base = destination.with_name(f"{destination.name}.backup-{stamp}")
+    backup_root = destination.parent.parent / "skill-backups"
+    backup_root.mkdir(parents=True, exist_ok=True)
+    base = backup_root / f"{destination.name}.backup-{stamp}"
     candidate = base
     counter = 1
     while path_exists(candidate):
-        candidate = destination.with_name(f"{base.name}-{counter}")
+        candidate = base.with_name(f"{base.name}-{counter}")
         counter += 1
     return candidate
 
@@ -139,7 +141,7 @@ def install_copy(destination: Path) -> None:
             SOURCE_DIR,
             temporary,
             symlinks=True,
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".venv", "venv", ".env"),
         )
         temporary.replace(destination)
     finally:
@@ -254,12 +256,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="替换已有目标；替换前自动创建同级时间戳备份。",
+        help="替换已有目标；旧版保存到技能发现目录之外的 skill-backups。",
     )
     parser.add_argument(
         "--uninstall",
         action="store_true",
-        help="卸载并把当前安装移动到同级时间戳备份。",
+        help="卸载并把当前安装移动到 skill-backups 中的时间戳备份。",
     )
     return parser
 
@@ -287,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"安装成功（{mode}）：{destination}")
     if backup is not None:
         print(f"原安装备份：{backup}")
-    print("请重新加载 Codex，然后在请求中显式写出 $ppt-master。")
+    print("下一轮可显式调用 $ppt-master；若未出现，请重启 Codex。")
     return 0
 
 

@@ -13,11 +13,16 @@ elif [ -x "$REPO_ROOT/.venv/bin/python" ]; then
   PY="$REPO_ROOT/.venv/bin/python"
 elif [ -x "$SKILL_ROOT/.venv/bin/python" ]; then
   PY="$SKILL_ROOT/.venv/bin/python"
+elif [ -x "$HOME/.cache/ppt-master/venv/bin/python" ]; then
+  PY="$HOME/.cache/ppt-master/venv/bin/python"
 elif [ -n "${VIRTUAL_ENV:-}" ] && [ -x "$VIRTUAL_ENV/bin/python" ]; then
   PY="$VIRTUAL_ENV/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
   PY=$(command -v python3)
 fi
+
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
 
 if [ -z "$PY" ] || [ ! -x "$PY" ]; then
   echo "PPT Master: no usable Python interpreter found." >&2

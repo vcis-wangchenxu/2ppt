@@ -2,6 +2,8 @@
 
 “导出了 PPTX”不等于完成。最终交付至少通过以下门禁。
 
+以下命令展示 macOS/Linux 写法；Windows 按 [运行时映射](codex-runtime.md) 换用 `run-python.ps1`。渲染器或视觉工具不可用时明确报告未验证项，不能把结构检查通过写成视觉验收通过。
+
 ## 1. 结构 / 包体
 
 - 输出可重新打开；
@@ -14,7 +16,7 @@ sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/validate_pptx.py" /a
 sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/inspect_pptx.py" /absolute/result.pptx --json
 ```
 
-6.6 SVG/native pipeline 同时执行其 `svg_quality_checker.py`、delivery/native parity 检查。
+6.9 SVG/native pipeline 同时执行其 `svg_quality_checker.py`、delivery/native parity 检查。
 
 ## 2. 内容
 核对标题、数字、单位、日期、专名、图表数据、来源、引语和 speaker notes。不得把模板示例文字当事实，不得把推断伪装成来源事实。

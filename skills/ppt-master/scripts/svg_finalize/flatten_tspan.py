@@ -45,12 +45,16 @@ TEXT_STYLE_ATTRS = {
     "stroke-width",
     "stroke-opacity",
     "opacity",
+    "display",
+    "visibility",
     "paint-order",
     # transforms/filters
     "transform",
     "clip-path",
     "filter",
 }
+
+TEXT_IDENTITY_ATTRS = {"id", "class", "data-name", "data-pptx-shape-name", "data-pptx-role"}
 
 
 num_re = re.compile(r"^[\s,]*([+-]?(?:\d+\.?\d*|\d*\.\d+))")
@@ -169,12 +173,17 @@ def copy_text_attrs(
     # Copy style string first
     if "style" in src_el.attrib and "style" not in exclude:
         dst_el.set("style", src_el.attrib["style"])
-    for k in TEXT_STYLE_ATTRS:
+    for k in TEXT_STYLE_ATTRS | TEXT_IDENTITY_ATTRS:
         if k in exclude:
             continue
         v = src_el.get(k)
         if v is not None:
             dst_el.set(k, v)
+    # A split row must retain the imported baseline/inset convention, even
+    # though the version marker is not an inherited SVG presentation property.
+    baseline_attr = "data-pptx-text-baseline"
+    if baseline_attr not in exclude and src_el.get(baseline_attr) is not None:
+        dst_el.set(baseline_attr, src_el.get(baseline_attr))
     # xml:space preservation
     xml_space = src_el.get("{http://www.w3.org/XML/1998/namespace}space")
     if xml_space is not None and "{http://www.w3.org/XML/1998/namespace}space" not in exclude:
@@ -581,6 +590,7 @@ def flatten_text_with_tspans(
         )
         raise ValueError(f"Unsupported nested positional <tspan>: {preview}{suffix}")
     parent_map = {c: p for p in root.iter() for c in p}
+    used_ids = {el.get("id") for el in root.iter() if el.get("id")}
     changed = False
 
     # Collect candidates first to avoid modifying while iterating
@@ -641,7 +651,7 @@ def flatten_text_with_tspans(
         current_line_lead_text = text_el.text or None
         
         for idx, child in enumerate(list(text_el)):
-            if not _is_svg_tag(child, "tspan"):
+            if not (_is_svg_tag(child, "tspan") or _is_svg_tag(child, "a")):
                 continue
 
             content = collect_text_content(child)
@@ -679,6 +689,16 @@ def flatten_text_with_tspans(
             new_texts.append(ne)
 
         if new_texts:
+            # Split rows remain distinct objects, but the first row retains
+            # the authored locator and later rows get collision-free ids.
+            original_id = text_el.get("id")
+            if original_id:
+                for line_number, ne in enumerate(new_texts[1:], start=2):
+                    candidate = f"{original_id}-line-{line_number}"
+                    while candidate in used_ids:
+                        candidate += "-line"
+                    ne.set("id", candidate)
+                    used_ids.add(candidate)
             # Replace original <text> with the list of new <text> nodes
             try:
                 idx = list(parent).index(text_el)
@@ -789,6 +809,8 @@ def _create_text_element_from_line(
     if (
         not lead_text
         and len(tspans) == 1
+        and _is_svg_tag(tspans[0], "tspan")
+        and not any(key in tspans[0].attrib for key in TEXT_IDENTITY_ATTRS)
         and not _has_tspan_children(tspans[0])
         and not tspans[0].tail
         and tspans[0].get(INLINE_FORMULA_ATTR) is None

@@ -5,23 +5,29 @@ description: "仅在用户明确调用 `$ppt-master` 时使用。Codex-native PP
 
 # PPT Master for Codex
 
-这是 `hugohe3/ppt-master@v6.6.0` 的 Codex-native 适配版。控制层保持轻量，重大能力由同步进来的上游工作流与原生 PPTX 引擎提供。
+这是 `hugohe3/ppt-master@v6.9.0` 的 Codex-native 适配版。控制层保持轻量，重大能力由同步进来的上游工作流与原生 PPTX 引擎提供。
 
 ## 0. 运行根目录
 
 把当前 `SKILL.md` 所在目录解析为绝对路径 `SKILL_ROOT`。不要依赖当前工作目录。
 
-首次使用先运行：
+先读取 [Codex 运行时映射](references/codex-runtime.md)，按宿主系统选择运行器，再检查环境。Windows PowerShell：
 
-```bash
-python3 "$SKILL_ROOT/scripts/doctor.py" --json
+```powershell
+& "$SKILL_ROOT/scripts/run-python.ps1" "$SKILL_ROOT/scripts/doctor.py" --json
+```
+
+macOS / Linux：
+
+```sh
+sh "$SKILL_ROOT/scripts/run-python.sh" "$SKILL_ROOT/scripts/doctor.py" --json
 ```
 
 项目、缓存、转换结果与最终 PPTX 必须写在 Skill 目录之外。
 
 ## 1. 固定加载顺序
 
-1. 读取 [Codex 运行时映射](references/codex-runtime.md)。
+1. 按已读取的 Codex 运行时映射执行；不要为 Windows 命令引入 Bash/WSL 依赖。
 2. 读取 [三路由入口](workflows/routing.md)。
 3. 选择且只选择一个顶层路由：Generate PPTX、Create Template、Edit Native PPTX。
 4. 只读取所选路由及其明确触发的 supporting references/stages。
@@ -32,7 +38,7 @@ python3 "$SKILL_ROOT/scripts/doctor.py" --json
 ## 2. Codex 优先级
 
 1. Codex 原生能力优先：会话提供 Presentations、网页检索、ImageGen 或视觉检查能力时优先使用；PPT Master 负责路由、规划、保真和验收。
-2. PPT Master 6.6 原生引擎：需要确定性 SVG→DrawingML、原生公式/图表/表格/链接、模板结构或 PPTX round-trip 保真时，使用 bundled 6.6 scripts。
+2. PPT Master 6.9 原生引擎：需要确定性 SVG→DrawingML、原生公式/图表/表格/链接、模板结构或 PPTX round-trip 保真时，使用 bundled 6.9 scripts。
 3. 轻量 JSON builder 最后兜底：只用于 `generate` 与 Create Template 的可选评审 deck；绝不伪造原生编辑保真。
 
 当上游工作流提到 provider-specific `image_gen.py` / `image_search.py` 时，Codex 中默认先用原生 ImageGen/Web。只有原生能力不可用或用户明确要求本地 provider 时才调用 bundled provider。
@@ -55,7 +61,8 @@ python3 "$SKILL_ROOT/scripts/doctor.py" --json
 - 每页可声明 `order/link/parent/membership/contrast/overlap` 等 Relationships；是否需要 topology 由 Executor 决定。
 - 文字区域先测量再排版；复杂数学优先原生 Office Math；数据图表/表格优先可编辑 native 对象并做 parity 检查。
 - Revision Round 只重跑受影响层，不因小改动整套重建。
-- 任何路线都不得以“文件生成成功”替代结构、内容、视觉和保真 QA。
+- 用户已给出的要求和授权直接沿用；只询问会改变交付的缺失信息。上游 Confirm UI 是可选评审界面，不是每轮都需重复确认的门槛。
+- 任何路线都不得以“文件生成成功”替代结构、内容、视觉和保真 QA。没有实际渲染就明确写“未完成视觉验收”。
 
 ## 5. 交付
 

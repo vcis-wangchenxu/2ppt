@@ -6,7 +6,16 @@ from pathlib import Path
 from typing import Any
 MINIMUM_PYTHON=(3,10)
 CORE=[("python-pptx","pptx"),("Pillow","PIL"),("PyYAML","yaml")]
-CAPABILITIES={"native_drawingml":[("XlsxWriter","xlsxwriter"),("skia-pathops","pathops"),("uharfbuzz","uharfbuzz")],"source_conversion":[("PyMuPDF","fitz"),("mammoth","mammoth"),("markdownify","markdownify"),("ebooklib","ebooklib"),("nbconvert","nbconvert"),("openpyxl","openpyxl"),("requests","requests"),("beautifulsoup4","bs4"),("curl_cffi","curl_cffi")],"image_processing":[("numpy","numpy"),("google-genai","google.genai")],"narration":[("edge-tts","edge_tts")],"live_preview":[("flask","flask")]}
+CAPABILITIES = {
+    "native_drawingml": [("XlsxWriter", "xlsxwriter"), ("skia-pathops", "pathops"), ("uharfbuzz", "uharfbuzz")],
+    "source_conversion": [("PyMuPDF", "fitz"), ("mammoth", "mammoth"), ("markdownify", "markdownify"), ("ebooklib", "ebooklib"), ("nbconvert", "nbconvert"), ("openpyxl", "openpyxl"), ("requests", "requests"), ("beautifulsoup4", "bs4")],
+    "image_processing": [("numpy", "numpy")],
+    "image_ocr": [("rapidocr", "rapidocr"), ("onnxruntime", "onnxruntime")],
+    "gemini_images": [("google-genai", "google.genai")],
+    "web_tls_fallback": [("curl_cffi", "curl_cffi")],
+    "narration": [("edge-tts", "edge_tts")],
+    "live_preview": [("flask", "flask")],
+}
 def dep(dist:str,mod:str,verify_import:bool=True)->dict[str,Any]:
     try: version=importlib.metadata.version(dist)
     except importlib.metadata.PackageNotFoundError: version=None
@@ -18,7 +27,7 @@ def dep(dist:str,mod:str,verify_import:bool=True)->dict[str,Any]:
             ok=False; error=f"{type(exc).__name__}: {exc}"
     return {"name":dist,"import":mod,"version":version,"available":bool(ok),"error":error}
 def collect_diagnostics()->dict[str,Any]:
-    pyok=sys.version_info>=MINIMUM_PYTHON; core=[dep(*x,verify_import=True) for x in CORE]; caps={k:[dep(*x,verify_import=False) for x in v] for k,v in CAPABILITIES.items()}
+    pyok=sys.version_info>=MINIMUM_PYTHON; core=[dep(*x,verify_import=True) for x in CORE]; caps={k:[dep(*x,verify_import=True) for x in v] for k,v in CAPABILITIES.items()}
     tools=[]
     for name,purpose in (("libreoffice","PPTX render/compat"),("soffice","LibreOffice CLI"),("pdftoppm","PDF render"),("ffmpeg","audio/video"),("pandoc","fallback conversion")):
         loc=shutil.which(name); tools.append({"name":name,"available":loc is not None,"path":str(Path(loc).resolve()) if loc else None,"required":False,"purpose":purpose})
